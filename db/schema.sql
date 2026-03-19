@@ -1,39 +1,44 @@
 -- =====================================================
--- E-Commerce Intelligence Platform — Full Database Schema
--- Generated via information_schema introspection
+-- E-Commerce Intelligence Platform — Database Schema
+-- Runnable migration: psql -d yourdb -f db/schema.sql
 -- =====================================================
 
 -- ─── Extensions ─────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- v1.6
-CREATE EXTENSION IF NOT EXISTS postgres_fdw;  -- v1.1
-CREATE EXTENSION IF NOT EXISTS unaccent;  -- v1.1
-
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- ─── Table: application_settings ─────────────────────────────────
-CREATE TABLE application_settings (
-    id INTEGER NOT NULL DEFAULT nextval('application_settings_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS application_settings (
+    id SERIAL,
     setting_key VARCHAR(100) NOT NULL,
     setting_value TEXT,
     description TEXT,
-    value_type VARCHAR(50) DEFAULT 'string'::character varying,
+    value_type VARCHAR(50) DEFAULT 'string',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
 
-
 -- ─── Table: parser_defined_categories ─────────────────────────────────
-CREATE TABLE parser_defined_categories (
-    id INTEGER NOT NULL DEFAULT nextval('parser_defined_categories_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS parser_defined_categories (
+    id SERIAL,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 );
 
+-- ─── Table: parsers ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS parsers (
+    id SERIAL,
+    name VARCHAR,
+    category VARCHAR(100),
+    PRIMARY KEY (id)
+);
 
 -- ─── Table: parser_run_logs ─────────────────────────────────
-CREATE TABLE parser_run_logs (
-    id INTEGER NOT NULL DEFAULT nextval('parser_run_logs_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS parser_run_logs (
+    id SERIAL,
     parser_id INTEGER NOT NULL,
     run_date TIMESTAMP NOT NULL,
     products_found INTEGER,
@@ -50,59 +55,61 @@ CREATE TABLE parser_run_logs (
     PRIMARY KEY (id)
 );
 
-ALTER TABLE parser_run_logs ADD FOREIGN KEY (parser_id) REFERENCES parsers(id);
-
--- ─── Table: parsers ─────────────────────────────────
-CREATE TABLE parsers (
-    id INTEGER NOT NULL DEFAULT nextval('parsers_id_seq'::regclass),
-    name VARCHAR,
-    category VARCHAR(100),
+-- ─── Table: product_groups ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_groups (
+    id SERIAL,
+    name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
     PRIMARY KEY (id)
 );
 
+-- ─── Table: products ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL,
+    original_id VARCHAR,
+    name VARCHAR,
+    url VARCHAR,
+    image VARCHAR,
+    slug VARCHAR,
+    vendor VARCHAR,
+    stock_policy VARCHAR,
+    parser_id INTEGER,
+    parent_id VARCHAR,
+    shortlisted BOOLEAN DEFAULT false,
+    pipeline_status VARCHAR(50) DEFAULT 'None',
+    sales_ranking VARCHAR(20),
+    group_id INTEGER,
+    name_search TEXT,
+    PRIMARY KEY (id)
+);
 
 -- ─── Table: price_history ─────────────────────────────────
-CREATE TABLE price_history (
-    id INTEGER NOT NULL DEFAULT nextval('price_history_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS price_history (
+    id SERIAL,
     product_id INTEGER NOT NULL,
     value DOUBLE PRECISION,
     timestamp TIMESTAMP,
     PRIMARY KEY (id)
 );
 
-ALTER TABLE price_history ADD FOREIGN KEY (product_id) REFERENCES products(id);
-
--- ─── Table: product_assigned_categories ─────────────────────────────────
-CREATE TABLE product_assigned_categories (
-    product_id INTEGER NOT NULL,
-    category_id INTEGER NOT NULL,
-    PRIMARY KEY (product_id, category_id)
-);
-
-ALTER TABLE product_assigned_categories ADD FOREIGN KEY (category_id) REFERENCES product_categories(id);
-ALTER TABLE product_assigned_categories ADD FOREIGN KEY (product_id) REFERENCES products(id);
-
 -- ─── Table: product_categories ─────────────────────────────────
-CREATE TABLE product_categories (
-    id INTEGER NOT NULL DEFAULT nextval('product_categories_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS product_categories (
+    id SERIAL,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     code VARCHAR(50),
     PRIMARY KEY (id)
 );
 
-
--- ─── Table: product_groups ─────────────────────────────────
-CREATE TABLE product_groups (
-    id INTEGER NOT NULL DEFAULT nextval('product_groups_id_seq'::regclass),
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (id)
+-- ─── Table: product_assigned_categories ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_assigned_categories (
+    product_id INTEGER NOT NULL,
+    category_id INTEGER NOT NULL,
+    PRIMARY KEY (product_id, category_id)
 );
 
-
 -- ─── Table: product_pipeline_details ─────────────────────────────────
-CREATE TABLE product_pipeline_details (
+CREATE TABLE IF NOT EXISTS product_pipeline_details (
     product_id INTEGER NOT NULL,
     specs TEXT,
     retail_price NUMERIC(12,2),
@@ -133,85 +140,52 @@ CREATE TABLE product_pipeline_details (
     PRIMARY KEY (product_id)
 );
 
-ALTER TABLE product_pipeline_details ADD FOREIGN KEY (product_id) REFERENCES products(id);
-
--- ─── Table: products ─────────────────────────────────
-CREATE TABLE products (
-    id INTEGER NOT NULL DEFAULT nextval('products_id_seq'::regclass),
-    original_id VARCHAR,
-    name VARCHAR,
-    url VARCHAR,
-    image VARCHAR,
-    slug VARCHAR,
-    vendor VARCHAR,
-    stock_policy VARCHAR,
-    parser_id INTEGER,
-    parent_id VARCHAR,
-    shortlisted BOOLEAN DEFAULT false,
-    pipeline_status VARCHAR(50) DEFAULT 'None'::character varying,
-    sales_ranking VARCHAR(20),
-    group_id INTEGER,
-    name_search TEXT,
-    PRIMARY KEY (id)
-);
-
-ALTER TABLE products ADD FOREIGN KEY (group_id) REFERENCES product_groups(id);
-ALTER TABLE products ADD FOREIGN KEY (parser_id) REFERENCES parsers(id);
-
 -- ─── Table: stock_history ─────────────────────────────────
-CREATE TABLE stock_history (
-    id INTEGER NOT NULL DEFAULT nextval('stock_history_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS stock_history (
+    id SERIAL,
     product_id INTEGER NOT NULL,
     quantity INTEGER,
     timestamp TIMESTAMP,
     PRIMARY KEY (id)
 );
 
-ALTER TABLE stock_history ADD FOREIGN KEY (product_id) REFERENCES products(id);
-
 -- ─── Table: users ─────────────────────────────────
-CREATE TABLE users (
-    id INTEGER NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL,
     username VARCHAR NOT NULL,
     hashed_password VARCHAR NOT NULL,
     PRIMARY KEY (id)
 );
 
 
+-- ─── Foreign Keys ──────────────────────────────────
+ALTER TABLE parser_run_logs ADD FOREIGN KEY (parser_id) REFERENCES parsers(id);
+ALTER TABLE products ADD FOREIGN KEY (group_id) REFERENCES product_groups(id);
+ALTER TABLE products ADD FOREIGN KEY (parser_id) REFERENCES parsers(id);
+ALTER TABLE price_history ADD FOREIGN KEY (product_id) REFERENCES products(id);
+ALTER TABLE product_assigned_categories ADD FOREIGN KEY (category_id) REFERENCES product_categories(id);
+ALTER TABLE product_assigned_categories ADD FOREIGN KEY (product_id) REFERENCES products(id);
+ALTER TABLE product_pipeline_details ADD FOREIGN KEY (product_id) REFERENCES products(id);
+ALTER TABLE stock_history ADD FOREIGN KEY (product_id) REFERENCES products(id);
+
+
+-- ─── Unique Constraints ────────────────────────────
+ALTER TABLE application_settings ADD CONSTRAINT application_settings_setting_key_key UNIQUE (setting_key);
+ALTER TABLE parser_defined_categories ADD CONSTRAINT parser_defined_categories_name_key UNIQUE (name);
+ALTER TABLE product_groups ADD CONSTRAINT product_groups_name_key UNIQUE (name);
+ALTER TABLE product_categories ADD CONSTRAINT product_categories_code_key UNIQUE (code);
+ALTER TABLE product_categories ADD CONSTRAINT product_categories_name_key UNIQUE (name);
+ALTER TABLE users ADD CONSTRAINT users_username_key UNIQUE (username);
+
 
 -- ─── Indexes ────────────────────────────────────────
 CREATE UNIQUE INDEX application_settings_setting_key_key ON public.application_settings USING btree (setting_key);
-CREATE UNIQUE INDEX mv_best_sellers_product_id_uq ON public.mv_best_sellers USING btree (product_id);
-CREATE UNIQUE INDEX mv_best_sellers_ranked_product_id_uq ON public.mv_best_sellers_ranked USING btree (product_id);
-CREATE UNIQUE INDEX mv_latest_price_product_id_uq ON public.mv_latest_price USING btree (product_id);
-CREATE UNIQUE INDEX mv_lp_pk ON public.mv_latest_price USING btree (product_id);
-CREATE UNIQUE INDEX mv_latest_stock_product_id_uq ON public.mv_latest_stock USING btree (product_id);
-CREATE INDEX mv_latest_stock_timestamp_idx ON public.mv_latest_stock USING btree ("timestamp");
-CREATE INDEX mv_parser_activity_latest_update_idx ON public.mv_parser_activity USING btree (latest_stock_update);
-CREATE INDEX mv_parser_activity_name_idx ON public.mv_parser_activity USING btree (parser_name);
-CREATE UNIQUE INDEX mv_parser_activity_parser_id_uq ON public.mv_parser_activity USING btree (parser_id);
-CREATE UNIQUE INDEX mv_pds_pk ON public.mv_product_daily_sales USING btree (product_id, s_day);
-CREATE INDEX mv_pds_units_idx ON public.mv_product_daily_sales USING btree (units_sold);
-CREATE UNIQUE INDEX mv_product_daily_sales_uq ON public.mv_product_daily_sales USING btree (product_id, s_day);
-CREATE INDEX idx_mv_product_scores_grade ON public.mv_product_scores USING btree (grade);
-CREATE UNIQUE INDEX idx_mv_product_scores_pid ON public.mv_product_scores USING btree (product_id);
-CREATE INDEX idx_mv_product_scores_total ON public.mv_product_scores USING btree (total_score DESC);
-CREATE UNIQUE INDEX mv_sidebar_parser_counts_id_uq ON public.mv_sidebar_parser_counts USING btree (id);
-CREATE UNIQUE INDEX mv_sidebar_pipeline_status_counts_status_uq ON public.mv_sidebar_pipeline_status_counts USING btree (pipeline_status);
-CREATE UNIQUE INDEX mv_sidebar_pipeline_status_counts_uq ON public.mv_sidebar_pipeline_status_counts USING btree (pipeline_status);
-CREATE INDEX mv_sld_day_idx ON public.mv_stock_last_per_day USING btree (s_day);
-CREATE UNIQUE INDEX mv_sld_pk ON public.mv_stock_last_per_day USING btree (product_id, s_day);
-CREATE UNIQUE INDEX mv_stock_last_per_day_uq ON public.mv_stock_last_per_day USING btree (product_id, s_day);
-CREATE UNIQUE INDEX mv_vendor_counts_all_vendor_uq ON public.mv_vendor_counts_all USING btree (vendor);
-CREATE UNIQUE INDEX mv_vendor_counts_by_parser_uq ON public.mv_vendor_counts_by_parser USING btree (parser_id, vendor);
 CREATE UNIQUE INDEX parser_defined_categories_name_key ON public.parser_defined_categories USING btree (name);
 CREATE INDEX idx_prl_parser_id ON public.parser_run_logs USING btree (parser_id);
 CREATE INDEX idx_prl_run_date ON public.parser_run_logs USING btree (run_date);
 CREATE INDEX ix_parser_run_logs_id ON public.parser_run_logs USING btree (id);
 CREATE INDEX ix_parser_run_logs_parser_id ON public.parser_run_logs USING btree (parser_id);
 CREATE INDEX ix_parser_run_logs_run_date ON public.parser_run_logs USING btree (run_date);
-CREATE UNIQUE INDEX parser_status_mv_parser_id_idx ON public.parser_status_mv USING btree (parser_id);
-CREATE UNIQUE INDEX parser_status_mv_parser_id_uq ON public.parser_status_mv USING btree (parser_id);
 CREATE INDEX ix_parsers_category ON public.parsers USING btree (category);
 CREATE UNIQUE INDEX ix_parsers_name ON public.parsers USING btree (name);
 CREATE INDEX idx_price_history_product_ts_desc ON public.price_history USING btree (product_id, "timestamp" DESC);
@@ -243,124 +217,42 @@ CREATE INDEX idx_stock_history_product_ts_desc ON public.stock_history USING btr
 CREATE INDEX idx_stock_history_ts_product ON public.stock_history USING btree ("timestamp" DESC, product_id);
 CREATE INDEX ix_stock_history_pid_ts_desc ON public.stock_history USING btree (product_id, "timestamp" DESC) INCLUDE (quantity);
 CREATE INDEX ix_stock_history_ts_brin ON public.stock_history USING brin ("timestamp") WITH (pages_per_range='64');
-CREATE INDEX ix_store_daily_metrics_day ON public.store_daily_metrics_mv USING btree (day);
-CREATE UNIQUE INDEX store_daily_metrics_mv_uq ON public.store_daily_metrics_mv USING btree (store_id, day);
-CREATE UNIQUE INDEX ux_store_daily_metrics ON public.store_daily_metrics_mv USING btree (store_id, day);
 CREATE UNIQUE INDEX users_username_key ON public.users USING btree (username);
 
 
 -- ─── Materialized Views ─────────────────────────────
-
--- MV: mv_best_sellers
-CREATE MATERIALIZED VIEW mv_best_sellers AS
- WITH settings AS (
-         SELECT COALESCE(( SELECT (application_settings.setting_value)::integer AS setting_value
-                   FROM application_settings
-                  WHERE ((application_settings.setting_key)::text = 'SALES_OUTLIER_MULTIPLIER'::text)), 10) AS outlier_multiplier
-        ), product_stats AS (
-         SELECT mv_product_daily_sales.product_id,
-            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((mv_product_daily_sales.units_sold)::double precision)) AS median_daily_sales
-           FROM mv_product_daily_sales
-          WHERE (mv_product_daily_sales.units_sold > 0)
-          GROUP BY mv_product_daily_sales.product_id
-        ), win AS (
-         SELECT pds.product_id,
-            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
-                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '7 days'::interval))) AS sold7,
-            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
-                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '30 days'::interval))) AS sold30,
-            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
-                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '90 days'::interval))) AS sold90,
-            max(pds.s_day) FILTER (WHERE (pds.units_sold > 0)) AS last_sold_day
-           FROM (mv_product_daily_sales pds
-             LEFT JOIN product_stats ps ON ((pds.product_id = ps.product_id)))
-          GROUP BY pds.product_id
-        ), latest AS (
-         SELECT DISTINCT ON (mv_stock_last_per_day.product_id) mv_stock_last_per_day.product_id,
-            mv_stock_last_per_day.close_stock AS latest_stock
-           FROM mv_stock_last_per_day
-          ORDER BY mv_stock_last_per_day.product_id, mv_stock_last_per_day.s_day DESC
-        )
- SELECT p.id AS product_id,
-    p.parser_id,
-    par.name AS parser_name,
-    p.vendor,
-    p.name,
-    p.url,
-    p.image,
-    COALESCE(l.latest_stock, 0) AS latest_stock,
-    COALESCE(lp.price, (0)::double precision) AS price,
-    round(((COALESCE(win.sold7, (0)::double precision))::numeric / (7)::numeric), 2) AS ads7_cal,
-    round(((COALESCE(win.sold30, (0)::double precision))::numeric / (30)::numeric), 2) AS ads30_cal,
-    round(((COALESCE(win.sold90, (0)::double precision))::numeric / (90)::numeric), 2) AS ads90_cal,
-    win.last_sold_day,
-    to_tsvector('romanian_unaccent'::regconfig, (((COALESCE(p.name, ''::character varying))::text || ' '::text) || (COALESCE(p.vendor, ''::character varying))::text)) AS search_vector
-   FROM ((((win
-     JOIN products p ON ((p.id = win.product_id)))
-     LEFT JOIN parsers par ON ((par.id = p.parser_id)))
-     LEFT JOIN latest l ON ((l.product_id = p.id)))
-     LEFT JOIN mv_latest_price lp ON ((lp.product_id = p.id)));;
-
-
--- MV: mv_best_sellers_ranked
-CREATE MATERIALIZED VIEW mv_best_sellers_ranked AS
- SELECT product_id,
-    parser_id,
-    parser_name,
-    vendor,
-    name,
-    url,
-    image,
-    latest_stock,
-    price,
-    ads7_cal,
-    ads30_cal,
-    ads90_cal,
-    last_sold_day,
-    search_vector,
-    dense_rank() OVER (ORDER BY ads30_cal DESC NULLS LAST) AS rnk_global_ads30,
-    dense_rank() OVER (PARTITION BY parser_id ORDER BY ads30_cal DESC NULLS LAST) AS rnk_store_ads30
-   FROM mv_best_sellers;;
-
-
--- MV: mv_latest_price
-CREATE MATERIALIZED VIEW mv_latest_price AS
- SELECT DISTINCT ON (product_id) product_id,
-    value AS price,
-    "timestamp" AS price_seen_at
-   FROM price_history ph
-  ORDER BY product_id, "timestamp" DESC, id DESC;;
-
+-- Created in dependency order. The application also
+-- auto-creates these on startup and refreshes daily at 8AM.
 
 -- MV: mv_latest_stock
-CREATE MATERIALIZED VIEW mv_latest_stock AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_latest_stock AS
  SELECT DISTINCT ON (product_id) product_id,
     quantity,
     "timestamp"
    FROM stock_history sh
-  ORDER BY product_id, "timestamp" DESC;;
+  ORDER BY product_id, "timestamp" DESC;
 
+-- MV: mv_latest_price
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_latest_price AS
+ SELECT DISTINCT ON (product_id) product_id,
+    value AS price,
+    "timestamp" AS price_seen_at
+   FROM price_history ph
+  ORDER BY product_id, "timestamp" DESC, id DESC;
 
--- MV: mv_parser_activity
-CREATE MATERIALIZED VIEW mv_parser_activity AS
- SELECT par.id AS parser_id,
-    par.name AS parser_name,
-    par.category AS parser_category,
-    count(DISTINCT p.id) AS total_products,
-    count(DISTINCT sh_all.product_id) AS products_with_stock_history,
-    count(DISTINCT sh_24h.product_id) AS products_updated_24h,
-    count(DISTINCT sh_48h.product_id) AS products_updated_48h,
-    max(sh_all."timestamp") AS latest_stock_update
-   FROM ((((parsers par
-     LEFT JOIN products p ON ((p.parser_id = par.id)))
-     LEFT JOIN stock_history sh_all ON ((sh_all.product_id = p.id)))
-     LEFT JOIN stock_history sh_24h ON (((sh_24h.product_id = p.id) AND (sh_24h."timestamp" >= (now() - '24:00:00'::interval)))))
-     LEFT JOIN stock_history sh_48h ON (((sh_48h.product_id = p.id) AND (sh_48h."timestamp" >= (now() - '48:00:00'::interval)))))
-  GROUP BY par.id, par.name, par.category;;
-
+-- MV: mv_stock_last_per_day
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_stock_last_per_day AS
+ SELECT DISTINCT ON (s.product_id, ((s."timestamp")::date)) s.product_id,
+    (s."timestamp")::date AS s_day,
+    s.quantity AS close_stock,
+    s."timestamp" AS last_seen_at
+   FROM (stock_history s
+     JOIN LATERAL ( SELECT (s."timestamp")::date AS s_day) d ON (true))
+  WHERE (s."timestamp" >= (CURRENT_DATE - '180 days'::interval))
+  ORDER BY s.product_id, ((s."timestamp")::date), s."timestamp" DESC, s.id DESC;
 
 -- MV: mv_product_daily_sales
-CREATE MATERIALIZED VIEW mv_product_daily_sales AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_product_daily_sales AS
  WITH settings AS (
          SELECT COALESCE(( SELECT (application_settings.setting_value)::integer AS setting_value
                    FROM application_settings
@@ -376,11 +268,105 @@ CREATE MATERIALIZED VIEW mv_product_daily_sales AS
             ELSE GREATEST((lag(close_stock) OVER w - close_stock), 0)
         END AS units_sold
    FROM mv_stock_last_per_day s
-  WINDOW w AS (PARTITION BY product_id ORDER BY s_day);;
+  WINDOW w AS (PARTITION BY product_id ORDER BY s_day);
 
+-- MV: product_metrics_view
+CREATE MATERIALIZED VIEW IF NOT EXISTS product_metrics_view AS
+ WITH settings AS (
+         SELECT COALESCE(( SELECT (application_settings.setting_value)::integer AS setting_value
+                   FROM application_settings
+                  WHERE ((application_settings.setting_key)::text = 'SALES_AVG_PERIOD_DAYS'::text)), 30) AS period_days
+        ), recent_stock_history AS (
+         SELECT sh.product_id,
+            sh.quantity,
+            sh."timestamp",
+            lag(sh.quantity) OVER (PARTITION BY sh.product_id ORDER BY sh."timestamp") AS prev_quantity
+           FROM stock_history sh
+          WHERE (sh."timestamp" >= (now() - '31 days'::interval))
+        ), daily_sales AS (
+         SELECT rsh.product_id,
+            (rsh."timestamp")::date AS day,
+            GREATEST(0, (rsh.prev_quantity - rsh.quantity)) AS sold_units
+           FROM recent_stock_history rsh
+          WHERE (rsh.quantity < rsh.prev_quantity)
+        ), aggregated_sales AS (
+         SELECT ds.product_id,
+            sum(ds.sold_units) AS total_sold_30d,
+            sum(ds.sold_units) FILTER (WHERE (ds.day >= (CURRENT_DATE - '6 days'::interval))) AS total_sold_7d,
+            sum(ds.sold_units) FILTER (WHERE (ds.day = CURRENT_DATE)) AS total_sold_1d,
+            round(((sum(ds.sold_units))::numeric / (( SELECT settings.period_days
+                   FROM settings))::numeric), 2) AS avg_sold_over_period
+           FROM daily_sales ds
+          GROUP BY ds.product_id
+        ), latest_stock_entries AS (
+         SELECT sh.product_id,
+            sh.quantity,
+            sh."timestamp",
+            row_number() OVER (PARTITION BY sh.product_id ORDER BY sh."timestamp" DESC) AS rn
+           FROM stock_history sh
+        ), current_stock_levels AS (
+         SELECT lse.product_id,
+            max(
+                CASE
+                    WHEN (lse.rn = 1) THEN lse.quantity
+                    ELSE NULL::integer
+                END) AS current_stock,
+            max(
+                CASE
+                    WHEN (lse.rn = 2) THEN lse.quantity
+                    ELSE NULL::integer
+                END) AS previous_stock,
+            max(
+                CASE
+                    WHEN (lse.rn = 1) THEN lse."timestamp"
+                    ELSE NULL::timestamp without time zone
+                END) AS latest_stock_ts,
+            max(
+                CASE
+                    WHEN (lse.rn = 2) THEN lse."timestamp"
+                    ELSE NULL::timestamp without time zone
+                END) AS previous_stock_ts
+           FROM latest_stock_entries lse
+          WHERE (lse.rn <= 2)
+          GROUP BY lse.product_id
+        ), stock_history_stats AS (
+         SELECT sh.product_id,
+            max(sh."timestamp") AS last_stock_update,
+            max(sh."timestamp") FILTER (WHERE (sh.quantity > 0)) AS last_nonzero_stock_date
+           FROM stock_history sh
+          GROUP BY sh.product_id
+        )
+ SELECT p.id,
+    p.name,
+    p.url,
+    p.image,
+    p.vendor,
+    par.name AS parser_name,
+    COALESCE(cs.current_stock, 0) AS stock,
+    COALESCE((cs.previous_stock - cs.current_stock), 0) AS stock_diff,
+    COALESCE(lp.price, (0)::double precision) AS price,
+    COALESCE(ags.total_sold_1d, (0)::bigint) AS avg_1d,
+    round(((COALESCE(ags.total_sold_7d, (0)::bigint))::numeric / 7.0), 2) AS avg_7d,
+    round(((COALESCE(ags.total_sold_30d, (0)::bigint))::numeric / 30.0), 2) AS avg_30d,
+    COALESCE(ags.avg_sold_over_period, 0.0) AS avg_sold_over_period,
+    shs.last_stock_update,
+    shs.last_nonzero_stock_date,
+        CASE
+            WHEN (shs.last_stock_update IS NULL) THEN true
+            WHEN (shs.last_stock_update < (now() - '14 days'::interval)) THEN true
+            WHEN ((COALESCE(cs.current_stock, 0) = 0) AND ((shs.last_nonzero_stock_date IS NULL) OR (shs.last_nonzero_stock_date < (now() - '14 days'::interval)))) THEN true
+            WHEN ((cs.latest_stock_ts < (now() - '14 days'::interval)) AND (cs.previous_stock_ts < (now() - '14 days'::interval))) THEN true
+            ELSE false
+        END AS is_stale
+   FROM (((((products p
+     LEFT JOIN parsers par ON ((p.parser_id = par.id)))
+     LEFT JOIN current_stock_levels cs ON ((p.id = cs.product_id)))
+     LEFT JOIN stock_history_stats shs ON ((p.id = shs.product_id)))
+     LEFT JOIN mv_latest_price lp ON ((lp.product_id = p.id)))
+     LEFT JOIN aggregated_sales ags ON ((p.id = ags.product_id)));
 
 -- MV: mv_product_scores
-CREATE MATERIALIZED VIEW mv_product_scores AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_product_scores AS
  WITH daily_stock AS (
          SELECT mv_stock_last_per_day.product_id,
             mv_stock_last_per_day.s_day,
@@ -580,61 +566,131 @@ CREATE MATERIALIZED VIEW mv_product_scores AS
     is_unrealistic_stock,
     is_high_stock,
     is_new_listing
-   FROM scored;;
+   FROM scored;
 
+-- MV: mv_best_sellers
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_best_sellers AS
+ WITH settings AS (
+         SELECT COALESCE(( SELECT (application_settings.setting_value)::integer AS setting_value
+                   FROM application_settings
+                  WHERE ((application_settings.setting_key)::text = 'SALES_OUTLIER_MULTIPLIER'::text)), 10) AS outlier_multiplier
+        ), product_stats AS (
+         SELECT mv_product_daily_sales.product_id,
+            percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((mv_product_daily_sales.units_sold)::double precision)) AS median_daily_sales
+           FROM mv_product_daily_sales
+          WHERE (mv_product_daily_sales.units_sold > 0)
+          GROUP BY mv_product_daily_sales.product_id
+        ), win AS (
+         SELECT pds.product_id,
+            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
+                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '7 days'::interval))) AS sold7,
+            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
+                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '30 days'::interval))) AS sold30,
+            sum(LEAST((pds.units_sold)::double precision, ((COALESCE(ps.median_daily_sales, (0)::double precision) * (( SELECT settings.outlier_multiplier
+                   FROM settings))::double precision) + (5)::double precision))) FILTER (WHERE (pds.s_day >= (CURRENT_DATE - '90 days'::interval))) AS sold90,
+            max(pds.s_day) FILTER (WHERE (pds.units_sold > 0)) AS last_sold_day
+           FROM (mv_product_daily_sales pds
+             LEFT JOIN product_stats ps ON ((pds.product_id = ps.product_id)))
+          GROUP BY pds.product_id
+        ), latest AS (
+         SELECT DISTINCT ON (mv_stock_last_per_day.product_id) mv_stock_last_per_day.product_id,
+            mv_stock_last_per_day.close_stock AS latest_stock
+           FROM mv_stock_last_per_day
+          ORDER BY mv_stock_last_per_day.product_id, mv_stock_last_per_day.s_day DESC
+        )
+ SELECT p.id AS product_id,
+    p.parser_id,
+    par.name AS parser_name,
+    p.vendor,
+    p.name,
+    p.url,
+    p.image,
+    COALESCE(l.latest_stock, 0) AS latest_stock,
+    COALESCE(lp.price, (0)::double precision) AS price,
+    round(((COALESCE(win.sold7, (0)::double precision))::numeric / (7)::numeric), 2) AS ads7_cal,
+    round(((COALESCE(win.sold30, (0)::double precision))::numeric / (30)::numeric), 2) AS ads30_cal,
+    round(((COALESCE(win.sold90, (0)::double precision))::numeric / (90)::numeric), 2) AS ads90_cal,
+    win.last_sold_day,
+    to_tsvector('romanian_unaccent'::regconfig, (((COALESCE(p.name, ''::character varying))::text || ' '::text) || (COALESCE(p.vendor, ''::character varying))::text)) AS search_vector
+   FROM ((((win
+     JOIN products p ON ((p.id = win.product_id)))
+     LEFT JOIN parsers par ON ((par.id = p.parser_id)))
+     LEFT JOIN latest l ON ((l.product_id = p.id)))
+     LEFT JOIN mv_latest_price lp ON ((lp.product_id = p.id)));
+
+-- MV: mv_best_sellers_ranked
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_best_sellers_ranked AS
+ SELECT product_id,
+    parser_id,
+    parser_name,
+    vendor,
+    name,
+    url,
+    image,
+    latest_stock,
+    price,
+    ads7_cal,
+    ads30_cal,
+    ads90_cal,
+    last_sold_day,
+    search_vector,
+    dense_rank() OVER (ORDER BY ads30_cal DESC NULLS LAST) AS rnk_global_ads30,
+    dense_rank() OVER (PARTITION BY parser_id ORDER BY ads30_cal DESC NULLS LAST) AS rnk_store_ads30
+   FROM mv_best_sellers;
+
+-- MV: mv_parser_activity
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_parser_activity AS
+ SELECT par.id AS parser_id,
+    par.name AS parser_name,
+    par.category AS parser_category,
+    count(DISTINCT p.id) AS total_products,
+    count(DISTINCT sh_all.product_id) AS products_with_stock_history,
+    count(DISTINCT sh_24h.product_id) AS products_updated_24h,
+    count(DISTINCT sh_48h.product_id) AS products_updated_48h,
+    max(sh_all."timestamp") AS latest_stock_update
+   FROM ((((parsers par
+     LEFT JOIN products p ON ((p.parser_id = par.id)))
+     LEFT JOIN stock_history sh_all ON ((sh_all.product_id = p.id)))
+     LEFT JOIN stock_history sh_24h ON (((sh_24h.product_id = p.id) AND (sh_24h."timestamp" >= (now() - '24:00:00'::interval)))))
+     LEFT JOIN stock_history sh_48h ON (((sh_48h.product_id = p.id) AND (sh_48h."timestamp" >= (now() - '48:00:00'::interval)))))
+  GROUP BY par.id, par.name, par.category;
 
 -- MV: mv_sidebar_parser_counts
-CREATE MATERIALIZED VIEW mv_sidebar_parser_counts AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sidebar_parser_counts AS
  SELECT p.id,
     p.name,
     p.category,
     count(pr.id) AS product_count
    FROM (parsers p
      LEFT JOIN products pr ON ((pr.parser_id = p.id)))
-  GROUP BY p.id, p.name, p.category;;
-
+  GROUP BY p.id, p.name, p.category;
 
 -- MV: mv_sidebar_pipeline_status_counts
-CREATE MATERIALIZED VIEW mv_sidebar_pipeline_status_counts AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sidebar_pipeline_status_counts AS
  SELECT pipeline_status,
     count(*) AS product_count
    FROM products
-  GROUP BY pipeline_status;;
-
-
--- MV: mv_stock_last_per_day
-CREATE MATERIALIZED VIEW mv_stock_last_per_day AS
- SELECT DISTINCT ON (s.product_id, ((s."timestamp")::date)) s.product_id,
-    (s."timestamp")::date AS s_day,
-    s.quantity AS close_stock,
-    s."timestamp" AS last_seen_at
-   FROM (stock_history s
-     JOIN LATERAL ( SELECT (s."timestamp")::date AS s_day) d ON (true))
-  WHERE (s."timestamp" >= (CURRENT_DATE - '180 days'::interval))
-  ORDER BY s.product_id, ((s."timestamp")::date), s."timestamp" DESC, s.id DESC;;
-
+  GROUP BY pipeline_status;
 
 -- MV: mv_vendor_counts_all
-CREATE MATERIALIZED VIEW mv_vendor_counts_all AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_vendor_counts_all AS
  SELECT vendor,
     count(*) AS product_count
    FROM products
   WHERE ((vendor IS NOT NULL) AND ((vendor)::text <> ''::text))
-  GROUP BY vendor;;
-
+  GROUP BY vendor;
 
 -- MV: mv_vendor_counts_by_parser
-CREATE MATERIALIZED VIEW mv_vendor_counts_by_parser AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_vendor_counts_by_parser AS
  SELECT parser_id,
     vendor,
     count(*) AS product_count
    FROM products
   WHERE ((vendor IS NOT NULL) AND ((vendor)::text <> ''::text) AND (parser_id IS NOT NULL))
-  GROUP BY parser_id, vendor;;
-
+  GROUP BY parser_id, vendor;
 
 -- MV: parser_status_mv
-CREATE MATERIALIZED VIEW parser_status_mv AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS parser_status_mv AS
  WITH last_stock AS (
          SELECT p.id AS product_id,
             p.parser_id,
@@ -660,107 +716,10 @@ CREATE MATERIALIZED VIEW parser_status_mv AS
                    FROM (stock_history sh
                      JOIN products p ON ((sh.product_id = p.id)))
                   WHERE ((p.parser_id = lr.parser_id) AND (sh."timestamp" > (now() - '30 days'::interval)))) subquery) AS avg_parse_frequency_hours
-   FROM last_run lr;;
-
-
--- MV: product_metrics_view
-CREATE MATERIALIZED VIEW product_metrics_view AS
- WITH settings AS (
-         SELECT COALESCE(( SELECT (application_settings.setting_value)::integer AS setting_value
-                   FROM application_settings
-                  WHERE ((application_settings.setting_key)::text = 'SALES_AVG_PERIOD_DAYS'::text)), 30) AS period_days
-        ), recent_stock_history AS (
-         SELECT sh.product_id,
-            sh.quantity,
-            sh."timestamp",
-            lag(sh.quantity) OVER (PARTITION BY sh.product_id ORDER BY sh."timestamp") AS prev_quantity
-           FROM stock_history sh
-          WHERE (sh."timestamp" >= (now() - '31 days'::interval))
-        ), daily_sales AS (
-         SELECT rsh.product_id,
-            (rsh."timestamp")::date AS day,
-            GREATEST(0, (rsh.prev_quantity - rsh.quantity)) AS sold_units
-           FROM recent_stock_history rsh
-          WHERE (rsh.quantity < rsh.prev_quantity)
-        ), aggregated_sales AS (
-         SELECT ds.product_id,
-            sum(ds.sold_units) AS total_sold_30d,
-            sum(ds.sold_units) FILTER (WHERE (ds.day >= (CURRENT_DATE - '6 days'::interval))) AS total_sold_7d,
-            sum(ds.sold_units) FILTER (WHERE (ds.day = CURRENT_DATE)) AS total_sold_1d,
-            round(((sum(ds.sold_units))::numeric / (( SELECT settings.period_days
-                   FROM settings))::numeric), 2) AS avg_sold_over_period
-           FROM daily_sales ds
-          GROUP BY ds.product_id
-        ), latest_stock_entries AS (
-         SELECT sh.product_id,
-            sh.quantity,
-            sh."timestamp",
-            row_number() OVER (PARTITION BY sh.product_id ORDER BY sh."timestamp" DESC) AS rn
-           FROM stock_history sh
-        ), current_stock_levels AS (
-         SELECT lse.product_id,
-            max(
-                CASE
-                    WHEN (lse.rn = 1) THEN lse.quantity
-                    ELSE NULL::integer
-                END) AS current_stock,
-            max(
-                CASE
-                    WHEN (lse.rn = 2) THEN lse.quantity
-                    ELSE NULL::integer
-                END) AS previous_stock,
-            max(
-                CASE
-                    WHEN (lse.rn = 1) THEN lse."timestamp"
-                    ELSE NULL::timestamp without time zone
-                END) AS latest_stock_ts,
-            max(
-                CASE
-                    WHEN (lse.rn = 2) THEN lse."timestamp"
-                    ELSE NULL::timestamp without time zone
-                END) AS previous_stock_ts
-           FROM latest_stock_entries lse
-          WHERE (lse.rn <= 2)
-          GROUP BY lse.product_id
-        ), stock_history_stats AS (
-         SELECT sh.product_id,
-            max(sh."timestamp") AS last_stock_update,
-            max(sh."timestamp") FILTER (WHERE (sh.quantity > 0)) AS last_nonzero_stock_date
-           FROM stock_history sh
-          GROUP BY sh.product_id
-        )
- SELECT p.id,
-    p.name,
-    p.url,
-    p.image,
-    p.vendor,
-    par.name AS parser_name,
-    COALESCE(cs.current_stock, 0) AS stock,
-    COALESCE((cs.previous_stock - cs.current_stock), 0) AS stock_diff,
-    COALESCE(lp.price, (0)::double precision) AS price,
-    COALESCE(ags.total_sold_1d, (0)::bigint) AS avg_1d,
-    round(((COALESCE(ags.total_sold_7d, (0)::bigint))::numeric / 7.0), 2) AS avg_7d,
-    round(((COALESCE(ags.total_sold_30d, (0)::bigint))::numeric / 30.0), 2) AS avg_30d,
-    COALESCE(ags.avg_sold_over_period, 0.0) AS avg_sold_over_period,
-    shs.last_stock_update,
-    shs.last_nonzero_stock_date,
-        CASE
-            WHEN (shs.last_stock_update IS NULL) THEN true
-            WHEN (shs.last_stock_update < (now() - '14 days'::interval)) THEN true
-            WHEN ((COALESCE(cs.current_stock, 0) = 0) AND ((shs.last_nonzero_stock_date IS NULL) OR (shs.last_nonzero_stock_date < (now() - '14 days'::interval)))) THEN true
-            WHEN ((cs.latest_stock_ts < (now() - '14 days'::interval)) AND (cs.previous_stock_ts < (now() - '14 days'::interval))) THEN true
-            ELSE false
-        END AS is_stale
-   FROM (((((products p
-     LEFT JOIN parsers par ON ((p.parser_id = par.id)))
-     LEFT JOIN current_stock_levels cs ON ((p.id = cs.product_id)))
-     LEFT JOIN stock_history_stats shs ON ((p.id = shs.product_id)))
-     LEFT JOIN mv_latest_price lp ON ((lp.product_id = p.id)))
-     LEFT JOIN aggregated_sales ags ON ((p.id = ags.product_id)));;
-
+   FROM last_run lr;
 
 -- MV: store_analytics_mv
-CREATE MATERIALIZED VIEW store_analytics_mv AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS store_analytics_mv AS
  WITH date_range AS (
          SELECT (CURRENT_DATE - '29 days'::interval) AS start_date,
             CURRENT_DATE AS end_date
@@ -841,11 +800,10 @@ CREATE MATERIALIZED VIEW store_analytics_mv AS
             ELSE (0)::numeric
         END AS stock_turn
    FROM (parser_aggregates pa
-     JOIN inventory_values iv ON ((pa.parser_id = iv.parser_id)));;
-
+     JOIN inventory_values iv ON ((pa.parser_id = iv.parser_id)));
 
 -- MV: store_daily_metrics_mv
-CREATE MATERIALIZED VIEW store_daily_metrics_mv AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS store_daily_metrics_mv AS
  WITH snapshots AS (
          SELECT sh.product_id,
             p.parser_id AS store_id,
@@ -970,4 +928,35 @@ CREATE MATERIALIZED VIEW store_daily_metrics_mv AS
     mw.avg_monthly_profit_6m
    FROM (daily_store d
      LEFT JOIN monthly_with_windows mw ON (((mw.store_id = d.store_id) AND (mw.month = (date_trunc('month'::text, (d.day)::timestamp with time zone))::date))))
-  ORDER BY d.store_id, d.day;;
+  ORDER BY d.store_id, d.day;
+
+
+-- ─── MV Indexes ────────────────────────────────────
+CREATE UNIQUE INDEX mv_best_sellers_product_id_uq ON public.mv_best_sellers USING btree (product_id);
+CREATE UNIQUE INDEX mv_best_sellers_ranked_product_id_uq ON public.mv_best_sellers_ranked USING btree (product_id);
+CREATE UNIQUE INDEX mv_latest_price_product_id_uq ON public.mv_latest_price USING btree (product_id);
+CREATE UNIQUE INDEX mv_lp_pk ON public.mv_latest_price USING btree (product_id);
+CREATE UNIQUE INDEX mv_latest_stock_product_id_uq ON public.mv_latest_stock USING btree (product_id);
+CREATE INDEX mv_latest_stock_timestamp_idx ON public.mv_latest_stock USING btree ("timestamp");
+CREATE INDEX mv_parser_activity_latest_update_idx ON public.mv_parser_activity USING btree (latest_stock_update);
+CREATE INDEX mv_parser_activity_name_idx ON public.mv_parser_activity USING btree (parser_name);
+CREATE UNIQUE INDEX mv_parser_activity_parser_id_uq ON public.mv_parser_activity USING btree (parser_id);
+CREATE UNIQUE INDEX mv_pds_pk ON public.mv_product_daily_sales USING btree (product_id, s_day);
+CREATE INDEX mv_pds_units_idx ON public.mv_product_daily_sales USING btree (units_sold);
+CREATE UNIQUE INDEX mv_product_daily_sales_uq ON public.mv_product_daily_sales USING btree (product_id, s_day);
+CREATE INDEX idx_mv_product_scores_grade ON public.mv_product_scores USING btree (grade);
+CREATE UNIQUE INDEX idx_mv_product_scores_pid ON public.mv_product_scores USING btree (product_id);
+CREATE INDEX idx_mv_product_scores_total ON public.mv_product_scores USING btree (total_score DESC);
+CREATE UNIQUE INDEX mv_sidebar_parser_counts_id_uq ON public.mv_sidebar_parser_counts USING btree (id);
+CREATE UNIQUE INDEX mv_sidebar_pipeline_status_counts_status_uq ON public.mv_sidebar_pipeline_status_counts USING btree (pipeline_status);
+CREATE UNIQUE INDEX mv_sidebar_pipeline_status_counts_uq ON public.mv_sidebar_pipeline_status_counts USING btree (pipeline_status);
+CREATE INDEX mv_sld_day_idx ON public.mv_stock_last_per_day USING btree (s_day);
+CREATE UNIQUE INDEX mv_sld_pk ON public.mv_stock_last_per_day USING btree (product_id, s_day);
+CREATE UNIQUE INDEX mv_stock_last_per_day_uq ON public.mv_stock_last_per_day USING btree (product_id, s_day);
+CREATE UNIQUE INDEX mv_vendor_counts_all_vendor_uq ON public.mv_vendor_counts_all USING btree (vendor);
+CREATE UNIQUE INDEX mv_vendor_counts_by_parser_uq ON public.mv_vendor_counts_by_parser USING btree (parser_id, vendor);
+CREATE UNIQUE INDEX parser_status_mv_parser_id_idx ON public.parser_status_mv USING btree (parser_id);
+CREATE UNIQUE INDEX parser_status_mv_parser_id_uq ON public.parser_status_mv USING btree (parser_id);
+CREATE INDEX ix_store_daily_metrics_day ON public.store_daily_metrics_mv USING btree (day);
+CREATE UNIQUE INDEX store_daily_metrics_mv_uq ON public.store_daily_metrics_mv USING btree (store_id, day);
+CREATE UNIQUE INDEX ux_store_daily_metrics ON public.store_daily_metrics_mv USING btree (store_id, day);
