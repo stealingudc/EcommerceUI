@@ -1,0 +1,238 @@
+/* ═══════════════════════════════════════════════════════════
+   Dashboard Styles
+   ═══════════════════════════════════════════════════════════ */
+
+.dash-filter-bar {
+  margin-bottom: var(--spacing-6);
+  padding: var(--spacing-4) var(--spacing-5);
+}
+
+.dash-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.dash-filter-advanced {
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.dash-range-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.dash-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dash-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent-primary);
+}
+
+/* Table card */
+.dash-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.dash-table-container {
+  overflow-x: auto;
+}
+
+/* Force table to fit within container */
+.dash-table-container .data-table {
+  width: 100%;
+}
+
+/* Column widths — use max-width so content doesn't overlap */
+.dash-table-container .data-table th,
+.dash-table-container .data-table td {
+  white-space: nowrap;
+  padding: var(--spacing-2) var(--spacing-2);
+  font-size: 0.8rem;
+}
+.dash-table-container .data-table th:nth-child(1),
+.dash-table-container .data-table td:nth-child(1) { width: 36px; }
+.dash-table-container .data-table th:nth-child(2),
+.dash-table-container .data-table td:nth-child(2) { max-width: 150px; }
+.dash-table-container .data-table th:nth-child(3),
+.dash-table-container .data-table td:nth-child(3) { max-width: 80px; }
+.dash-table-container .data-table th:nth-child(4),
+.dash-table-container .data-table td:nth-child(4) { max-width: 70px; }
+
+/* All td text overflow handling */
+.dash-table-container .data-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status and Rank cells should not clip their badge content */
+.dash-table-container .data-table td:nth-child(5),
+.dash-table-container .data-table td:nth-child(6) {
+  overflow: visible;
+}
+
+/* Product thumbnail */
+.dash-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-hover);
+  flex-shrink: 0;
+}
+
+.dash-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dash-thumb-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+/* Product name link */
+.dash-product-link {
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  transition: color var(--transition-fast);
+}
+
+.dash-product-link:hover {
+  color: var(--color-accent-muted);
+}
+
+/* Inline status dropdown */
+.dash-status-select {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-status-select:hover {
+  border-color: var(--color-border-hover);
+}
+
+.dash-status-select.badge-healthy { background: var(--badge-healthy-bg); color: var(--badge-healthy-text); }
+.dash-status-select.badge-info { background: var(--badge-info-bg); color: var(--badge-info-text); }
+.dash-status-select.badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-text); }
+.dash-status-select.badge-error { background: var(--badge-error-bg); color: var(--badge-error-text); }
+.dash-status-select.badge-neutral { background: var(--badge-neutral-bg); color: var(--badge-neutral-text); }
+
+/* Sort indicator */
+.dash-sort-indicator {
+  font-size: 0.625rem;
+  opacity: 0.7;
+}
+
+/* Actions */
+.dash-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+/* Heart button */
+.dash-heart-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.dash-heart-btn:hover {
+  color: var(--color-red-400);
+}
+
+.dash-heart-btn.active {
+  color: var(--color-red-500);
+  animation: heartBounce 0.3s ease;
+}
+
+/* Pagination */
+.dash-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) var(--spacing-6);
+  border-top: 1px solid var(--table-border);
+}
+
+.dash-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.dash-page-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 32px;
+}
+
+.dash-page-btn:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-default);
+}
+
+.dash-page-btn.active {
+  background: var(--color-accent-primary);
+  color: var(--color-white);
+  border-color: var(--color-accent-primary);
+}
+
+.dash-page-ellipsis {
+  color: var(--color-text-muted);
+  padding: 0 4px;
+}

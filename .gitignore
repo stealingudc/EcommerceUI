@@ -1,0 +1,50 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ─── Environment ───
+.env
+.env.local
+.env.production
+
+# ─── Node / Frontend ───
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ─── IDE ───
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Logs ───
+*.log
+npm-debug.log*
+
+# ─── API Frontend Build ───
+api/frontend_dist/
+
+# ─── Test / Debug Scripts ───
+test_search.py
+test_similar.py
+test_queries.py
+debug_score.py
+inspect_db.py
+/tmp/
+
+# ─── Misc ───
+cookies.txt
+*.sqlite3
